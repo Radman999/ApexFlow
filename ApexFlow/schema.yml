@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  title: ApexFlow API
+  version: 1.0.0
+  description: API for ApexFlow project
+paths:
+  /QR/:
+    get:
+      operationId: QR_list
+      tags:
+      - QR
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/qr'
+          description: ''
+    post:
+      operationId: QR_create
+      tags:
+      - QR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/qr'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/qr'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/qr'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/qr'
+          description: ''
+  /QR/{id}/:
+    get:
+      operationId: QR_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this qr.
+        required: true
+      tags:
+      - QR
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/qr'
+          description: ''
+    put:
+      operationId: QR_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this qr.
+        required: true
+      tags:
+      - QR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/qr'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/qr'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/qr'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/qr'
+          description: ''
+    patch:
+      operationId: QR_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this qr.
+        required: true
+      tags:
+      - QR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patchedqr'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Patchedqr'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Patchedqr'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/qr'
+          description: ''
+    delete:
+      operationId: QR_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this qr.
+        required: true
+      tags:
+      - QR
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    Patchedqr:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        wh:
+          type: integer
+        productunit:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    qr:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        wh:
+          type: integer
+        productunit:
+          type: integer
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - productunit
+      - quantity
+      - updated_at
+      - wh
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

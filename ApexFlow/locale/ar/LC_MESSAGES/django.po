@@ -1,0 +1,53 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-04-15 16:04+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: .\Production\models.py:13
+msgid "name"
+msgstr ""
+
+#: .\Production\models.py:14
+msgid "Status"
+msgstr "الحالة"
+
+msgid "product"
+msgstr "منتج"
+
+msgid "products"
+msgstr "منتجات"
+
+msgid "Created at"
+msgstr "أنشئ بتاريخ"
+
+msgid "Updated at"
+msgstr "آخر تحديث"
+
+msgid "Item code"
+msgstr "رمز المنتج"
+
+msgid "Image"
+msgstr "صورة"
+
+msgid "unit"
+msgstr "وحدة"
+
+
+msgid "units"
+msgstr "وحدات"

@@ -1,25 +1,61 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.utils import timezone
 import qrcode
 from io import BytesIO
 from django.core.files import File
-
+from django.core.files.base import ContentFile
+from django.db.models import F
+from django.db import transaction
 # Create your models here.
 
-class Product(models.Model):
-    name = models.CharField(max_length=100)
-    status = models.BooleanField(default=False)
+class product(models.Model):
+    name = models.CharField(_('name'),max_length=100)
+    status = models.BooleanField(_('Status'),default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('product')
+        verbose_name_plural = _('products')
     
     def __str__(self):
         return self.name
+
+class creator(models.Model):
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        abstract = True  # Important: This makes the model abstract
+
+class test(creator):
+    name = models.CharField(max_length=100)
+
+
+
 
 class unit(models.Model):
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = _('unit')
+        verbose_name_plural = _('units')
     
     def __str__(self):
         return self.name
@@ -33,7 +69,7 @@ class unit_frac(models.Model):
         return self.name
 
 class productunit(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(product, on_delete=models.CASCADE)
     unit = models.ForeignKey(unit, on_delete=models.CASCADE)
     unit_frac = models.ForeignKey(unit_frac, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
@@ -49,51 +85,139 @@ class wh(models.Model):
     Smacc_Code = models.CharField(max_length=100)
     
     def __str__(self):
-        return self.Smacc_Code
+        return self.name + ' ' + self.Smacc_Code
     
 
 class qr(models.Model):
-    wh = models.ForeignKey(wh, on_delete=models.CASCADE)
-    productunit = models.ForeignKey(productunit, on_delete=models.CASCADE)
+    wh = models.ForeignKey('wh', on_delete=models.CASCADE, related_name="wh")
+    productunit = models.ForeignKey('productunit', on_delete=models.CASCADE)
     quantity = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
+ #   qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
+ #   id_t = models.IntegerField(null=True, blank=True)  # New field to mirror the id
 
+ #   def save(self, *args, **kwargs):
+ #       creating = self.pk is None  # Check if the instance is being created
+ #       super().save(*args, **kwargs)  # Call the "real" save() method.
+ #       if creating:
+ #           self.generate_qr_code()
+ #           self.id_t = self.pk  # Assign the PK to id_t after the object is saved
+ #           super().save(update_fields=['id_t'])  # Save again to update id_t
+#
+ #   def generate_qr_code(self):
+ #       local_datetime = timezone.localtime(self.created_at, timezone=timezone.get_fixed_timezone(180))  # Riyadh is UTC+3
+ #       formatted_date = local_datetime.strftime('%Y-%m-%d %H:%M:%S')
+ #       qr_info = f"WH: {self.wh.id}, ProductUnit: {self.productunit.id}, Quantity: {self.quantity}, Created: {formatted_date}"
+ #       qr_img = qrcode.make(qr_info)
+ #       qr_io = BytesIO()
+ #       qr_img.save(qr_io, format='JPEG')
+ #       qr_io.seek(0)
+ #       self.qr_code.save(f"qr_code_{self.pk}.jpg", ContentFile(qr_io.read()), save=False)
+
+    def __str__(self):
+        return f"{self.wh} - {self.productunit} - Quantity: ({self.quantity})"
+
+
+
+
+
+
+
+#class warehouse(models.Model):
+#    name = models.ForeignKey('wh', on_delete=models.CASCADE, related_name="warehouse_entries")
+#    quantity = models.IntegerField()
+
+#    def __str__(self):
+#        return f"{self.name} - Quantity: {self.quantity}"
+
+class Transfer(models.Model):
+    From = models.ForeignKey(qr, on_delete=models.CASCADE, related_name="transfer_from")
+    To = models.ForeignKey(wh, on_delete=models.CASCADE, related_name="transfer_to")
+    quantity = models.IntegerField()
+    
     def save(self, *args, **kwargs):
-        # Generate QR code and save it here
-        qr_info = f"WH: {self.wh.id}, ProductUnit: {self.productunit.id}, Quantity: {self.quantity}, Created: {self.created_at}"
-        qr_img = qrcode.make(qr_info)
-        qr_io = BytesIO()
-        qr_img.save(qr_io, format='JPEG')
-        self.qr_code.save(f"qr_code_{self.pk}.jpg", File(qr_io), save=False)
-        
-        super().save(*args, **kwargs)  # Call the "real" save() method.
+        with transaction.atomic():
+            # Check if there's an existing qr entry for the 'To' wh and 'From.productunit'
+            existing_qr = qr.objects.filter(wh=self.To, productunit=self.From.productunit,created_at=self.From.created_at).first()
+            if existing_qr:
+                # If exists, update the quantity
+                if self.From.quantity >= self.quantity:
+                    self.From.quantity = F('quantity') - self.quantity
+                    self.From.save()
+                    existing_qr.quantity = F('quantity') + self.quantity
+                    existing_qr.save()
+                else:
+                    raise ValueError("Not enough stock in source warehouse to complete transfer.")
+            else:
+                # If not, create a new qr entry
+                if self.From.quantity >= self.quantity:
+                    self.From.quantity = F('quantity') - self.quantity
+                    self.From.save()
+                    new_qr = qr.objects.create(
+                        wh=self.To,
+                        productunit=self.From.productunit,
+                        quantity=self.quantity,
+                        created_at=self.From.created_at,
+                        updated_at=self.From.updated_at
+                    )
+                else:
+                    raise ValueError("Not enough stock in source warehouse to complete transfer.")
+
+            # Proceed with saving the Transfer
+            super(Transfer, self).save(*args, **kwargs)
+
+
+
+
+
+
+
+
+#    def save(self, *args, **kwargs):
+#        if self.From.quantity >= self.quantity:  # Ensuring there is enough quantity to transfer
+#            self.From.quantity -= self.quantity
+#            self.To.quantity += self.quantity
+#            self.From.save()
+#            self.To.save()
+#            super().save(*args, **kwargs)
+#        else:
+#            raise ValueError("Not enough stock in source warehouse to complete transfer.")
+
+
+
+
+
+
+# class Transport(models.Model):
+#     From = models.ForeignKey('wh', on_delete=models.CASCADE, related_name='transport_from')
+#     To = models.ForeignKey('wh', on_delete=models.CASCADE, related_name='transport_to')
+#     created_at = models.DateTimeField(default=timezone.now)
+#     updated_at = models.DateTimeField(auto_now=True)
+#     image = models.ImageField(upload_to='Transport/', blank=True, null=True)
+
+#     def __str__(self):
+#         return f"From {self.From} To {self.To}"
+
+#     def perform_transport(self, quantity):
+#         qr_items = qr.objects.filter(wh=self.From)
+#         for item in qr_items:
+#             if item.quantity < quantity:
+#                 continue  # Optionally, handle the error more robustly
+
+#             target_item, created = qr.objects.get_or_create(
+#                 wh=self.To,
+#                 productunit=item.productunit,
+#                 defaults={'quantity': 0, 'created_at': timezone.now(), 'updated_at': timezone.now()}
+#             )
+#             target_item.quantity = F('quantity') + quantity
+#             target_item.save()
+
+#             item.quantity -= quantity
+#             item.save()
     
-
-    def __str__(self):
-        return f"{self.wh} - {self.productunit} - {self.quantity}"
-
-class TransportGroup(models.Model):
-    name = models.CharField(max_length=100)
-    # Add any other fields relevant to your transport group here
-
-    def __str__(self):
-        return self.name
-
-class Transport(models.Model):
-    From = models.ForeignKey('WH', on_delete=models.CASCADE, related_name='transport_from')
-    To = models.ForeignKey('TransportGroup', on_delete=models.CASCADE, related_name='transport_to')
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
-    #array of image
-    
-    def __str__(self):
-        return f"From {self.From} To {self.To}"
-    
-class TransportImage(models.Model):
-    transport = models.ForeignKey(Transport, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='transport_images/')
+  #  To = models.ForeignKey('WH', on_delete=models.CASCADE, related_name='transport_to')
+  #  image = models.ImageField(upload_to='Transport/', blank=True, null=True)  # New field
 
 
 class whtype(models.Model):
@@ -101,38 +225,6 @@ class whtype(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# class Users(models.Model):
-#     products = models.ManyToManyField(Product)
-
-#     def __str__(self):
-#         # Join all related product names into a single string
-#         return ', '.join([product.name for product in self.products.all()])
-
-    # Add any other fields relevant to your transport group here
-
-    def __str__(self):
-        return self.name
-
-class ProductPicked1(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    smaccFrom = models.ForeignKey(wh, on_delete=models.CASCADE, null=True, related_name='smacc_from')
-    smaccTo = models.ForeignKey(wh, on_delete=models.CASCADE, null=True, related_name='smacc_to')
-    
-
-    def smaccFrom_code(self):
-        return self.smaccFrom.Smacc_Code if self.smaccFrom else ''
- 
-    def smaccTo_code(self):
-        return self.smaccTo.Smacc_Code if self.smaccTo else ''
-
-    def smaccFrom_name(self):
-        return self.smaccFrom.name if self.smaccFrom else ''
-
-    def smaccTo_name(self):
-        return self.smaccTo.name if self.smaccTo else ''
-
 
 
 
