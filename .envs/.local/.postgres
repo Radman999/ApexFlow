@@ -1,7 +1,8 @@
 # PostgreSQL
 # ------------------------------------------------------------------------------
-POSTGRES_HOST=postgres
+POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=apex
-POSTGRES_USER=debug
-POSTGRES_PASSWORD=debug
+POSTGRES_DB=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=a123
+DATABASE_URL="postgres://postgres:a123@localhost:5432/postgres"
