@@ -9,6 +9,7 @@ from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
+from drf_spectacular.views import SpectacularRedocView
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
@@ -43,6 +44,9 @@ urlpatterns += [
         "api/docs/",
         SpectacularSwaggerView.as_view(url_name="api-schema"),
         name="api-docs",
+    ),
+    path(
+        "api/redoc/", SpectacularRedocView.as_view(url_name="api-schema"), name="redoc"
     ),
 ]
 

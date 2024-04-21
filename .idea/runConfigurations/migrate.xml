@@ -1,6 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="migrate" type="Python.DjangoServer" factoryName="Django server" singleton="true">
     <module name="apex" />
+    <option name="ENV_FILES" value="$PROJECT_DIR$/.env" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
@@ -27,6 +28,6 @@
     <option name="runNoReload" value="false" />
     <option name="useCustomRunCommand" value="true" />
     <option name="customRunCommand" value="migrate" />
-    <method />
+    <method v="2" />
   </configuration>
 </component>
