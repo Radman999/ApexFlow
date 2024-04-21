@@ -126,7 +126,8 @@ LANGUAGES = [
     ('en', 'English'),
     ('ar', 'Arabic'),
 ]
-
+FILE_CHARSET = 'utf-8'
+DEFAULT_CHARSET = 'utf-8'
 # Path where translation files will be stored
 LOCALE_PATHS = [
     os.path.join(BASE_DIR, 'locale'),

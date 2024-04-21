@@ -22,17 +22,17 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from Production.views import qrViewSet, TransferViewSet #, WarehouseViewSet
+from Production.views import qrViewSet, TransferViewSet, productViewSet, refresh_api, product_unitViewSet, refresh_api_unit
 from rest_framework.routers import DefaultRouter
 
 
 
 
 router = DefaultRouter()
+router.register(r'products', productViewSet, basename='product')
 router.register(r'QR', qrViewSet)
-#router.register(r'warehouses', WarehouseViewSet)
 router.register(r'transfers', TransferViewSet)
-
+router.register(r'productunits', product_unitViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -44,6 +44,8 @@ urlpatterns = [
     #redirect to swagger
     path('', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('', include(router.urls)),
+    path('refresh-api/', refresh_api, name='refresh_api'),
+    path('refresh_api_unit/', refresh_api_unit, name='refresh_api_unit')
 
 
     

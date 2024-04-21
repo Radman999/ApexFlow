@@ -12,7 +12,8 @@ from django.db import transaction
 
 class product(models.Model):
     name = models.CharField(_('name'),max_length=100)
-    status = models.BooleanField(_('Status'),default=False)
+    is_active = models.BooleanField(_('Status'),default=False)
+    category = models.CharField(_('category'), max_length=50, choices=[('finished', 'finished'), ('materials', 'materials'), ('services', 'services')])
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -22,6 +23,33 @@ class product(models.Model):
     
     def __str__(self):
         return self.name
+
+class product_unit(models.Model):
+    tenant = models.IntegerField(null=True, blank=True)
+    product_name = models.CharField(max_length=255, null=True, blank=True)
+    product_unit_name = models.CharField(max_length=255, null=True, blank=True)
+    unit_name = models.CharField(max_length=100, null=True, blank=True)
+    remaining_quantity = models.IntegerField(null=True, blank=True)
+    relative_remaining_quantity = models.IntegerField(null=True, blank=True)
+    tier_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    created = models.DateTimeField(null=True, blank=True)
+    modified = models.DateTimeField(null=True, blank=True)
+    picture = models.URLField(null=True, blank=True)
+    sku = models.CharField(max_length=100, null=True, blank=True)
+    unit_fraction = models.BigIntegerField(null=True, blank=True)
+    old_cost_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    is_active = models.BooleanField(null=True, blank=True)
+    default = models.BooleanField(null=True, blank=True)
+    sync_quantity_salla = models.BooleanField(null=True, blank=True)
+    quantity_salla = models.BigIntegerField(null=True, blank=True)
+    auto_add = models.BooleanField(null=True, blank=True)
+    item_code = models.CharField(max_length=100, null=True, blank=True)
+    related_item_code = models.JSONField(default=list, null=True, blank=True)
+    product = models.IntegerField(null=True, blank=True)
+    unit = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return self.product_unit_name
 
 class creator(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
@@ -90,7 +118,7 @@ class wh(models.Model):
 
 class qr(models.Model):
     wh = models.ForeignKey('wh', on_delete=models.CASCADE, related_name="wh")
-    productunit = models.ForeignKey('productunit', on_delete=models.CASCADE)
+    productunit = models.ForeignKey('product_unit', on_delete=models.CASCADE)
     quantity = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
