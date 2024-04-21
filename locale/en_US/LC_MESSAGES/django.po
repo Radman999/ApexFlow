@@ -10,3 +10,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+#: .\ApexFlow\Production\models.py:12
+msgid "name"
+msgstr ""
+
+#: .\ApexFlow\Production\models.py:13
+msgid "Status"
+msgstr ""
