@@ -88,6 +88,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apex.users",
     # Your stuff: custom apps go here
+    "apex.production",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
