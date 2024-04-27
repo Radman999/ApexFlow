@@ -6,7 +6,7 @@ from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from requests.exceptions import RequestException
 from rest_framework import serializers
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 
 from .models import Transfer  # , WarehouseViewSet
 from .models import product
@@ -36,7 +36,8 @@ def refresh_api(request):
 
 def fetch_data_from_my_api():
     url = "http://192.168.100.50:8000/products/"
-    headers = {"Content-Type": "application/json"}
+    headers = { "Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+                "Content-Type": "application/json"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     existing_data = {
@@ -90,7 +91,8 @@ def prepare_data_for_post(my_data, external_data):
 
 def post_data_to_my_api(prepared_data):
     url = "http://192.168.100.50:8000/products/"
-    headers = {"Content-Type": "application/json"}
+    headers = {"Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+               "Content-Type": "application/json"}
     for product in prepared_data:
         response = requests.post(url, json=product, headers=headers)
         response.raise_for_status()  # Raises an exception for HTTP error responses
@@ -101,7 +103,8 @@ def patch_data_to_my_api(patch_data):
     url_template = (
         "http://192.168.100.50:8000/products/{id}/"  # Ensure URL is correct for PATCH
     )
-    headers = {"Content-Type": "application/json"}
+    headers = {"Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+               "Content-Type": "application/json"}
 
     for product in patch_data:
         product_url = url_template.format(id=product["id"])
@@ -125,14 +128,26 @@ class qrSerializer(serializers.ModelSerializer):
         representation["wh"] = (
             f"{instance.wh.name} - {instance.wh.Smacc_Code}"  # Custom output for wh
         )
+        representation["productunit"] = (
+            f"{instance.productunit.product_unit_name}"
+        )
 
         return representation
 
+class whSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = wh
+        fields = "__all__"
+
+class whViewSet(viewsets.ModelViewSet):
+    queryset = wh.objects.all()
+    serializer_class = whSerializer
 
 class qrViewSet(viewsets.ModelViewSet):
     queryset = qr.objects.all()
     serializer_class = qrSerializer
-
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['wh__name', 'wh__Smacc_Code']
 
 class productSerializer(serializers.ModelSerializer):
     class Meta:
@@ -171,21 +186,12 @@ class productViewSet(viewsets.ModelViewSet):
 
 
 class TransferSerializer(serializers.ModelSerializer):
-    From = serializers.PrimaryKeyRelatedField(queryset=qr.objects.all())
-    To = serializers.PrimaryKeyRelatedField(queryset=wh.objects.all())
+
 
     class Meta:
         model = Transfer
         fields = ["id", "From", "To", "quantity"]
 
-    def to_representation(self, instance):
-        """Modify the output of certain fields for serialization"""
-        representation = super().to_representation(instance)
-        representation["From"] = (
-            f"{instance.From.wh.name} - {instance.From.productunit.product.name} - {instance.From.productunit.unit.name} - {instance.From.productunit.unit_frac.name}"
-        )
-        representation["To"] = f"{instance.To.name} - {instance.To.Smacc_Code}"
-        return representation
 
 
 class TransferViewSet(viewsets.ModelViewSet):
@@ -242,7 +248,8 @@ def refresh_api_unit(request):
 
 def fetch_data_from_my_unit():  # Fetch data from my API
     url = "http://192.168.100.50:8000/productunits/"
-    headers = {"Content-Type": "application/json"}
+    headers = {"Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+               "Content-Type": "application/json"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     print(
@@ -298,7 +305,8 @@ def prepare_data_for_post_unit(my_data, external_data):  # Prepare data for POST
 
 def post_data_to_my_api_unit(new_data):  # POST
     url = "http://192.168.100.50:8000/productunits/"
-    headers = {"Content-Type": "application/json"}
+    headers = {"Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+               "Content-Type": "application/json"}
     for product_unit in new_data:
         response = requests.post(url, json=product_unit, headers=headers)
         response.raise_for_status()
@@ -307,7 +315,8 @@ def post_data_to_my_api_unit(new_data):  # POST
 
 def patch_data_to_my_api_unit(patch_data):  # PATCH
     url_template = "http://192.168.100.50:8000/productunits/{id}/"
-    headers = {"Content-Type": "application/json"}
+    headers = {"Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
+               "Content-Type": "application/json"}
     for product_unit in patch_data:
         product_url = url_template.format(id=product_unit["id"])
         response = requests.patch(product_url, json=product_unit, headers=headers)

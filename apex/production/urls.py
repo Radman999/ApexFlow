@@ -8,12 +8,14 @@ from .views import productViewSet
 from .views import qrViewSet
 from .views import refresh_api
 from .views import refresh_api_unit
+from .views import whViewSet
 
 router = DefaultRouter()
 router.register(r"products", productViewSet, basename="product")
 router.register(r"QR", qrViewSet)
 router.register(r"transfers", TransferViewSet)
 router.register(r"productunits", product_unitViewSet)
+router.register(r"wh", whViewSet)
 
 urlpatterns = [
     path("refresh-api/", refresh_api, name="refresh_api"),
