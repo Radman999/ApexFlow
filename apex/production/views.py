@@ -1,18 +1,23 @@
-# ruff: noqa
+import logging
+
 import requests
+from django.db import DatabaseError
 from django.http import JsonResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from requests.exceptions import RequestException
+from rest_framework import filters
 from rest_framework import serializers
-from rest_framework import viewsets, filters
+from rest_framework import viewsets
 
-from .models import Transfer  # , WarehouseViewSet
 from .models import Product
 from .models import ProductUnit
 from .models import Qr  # , WarehouseViewSet
+from .models import Transfer  # , WarehouseViewSet
 from .models import Wh
+
+logger = logging.getLogger(__name__)
 
 
 def refresh_api(request):
@@ -28,10 +33,16 @@ def refresh_api(request):
 
         if new_data or patch_data:
             return JsonResponse({"message": "API refreshed successfully!"})
-        else:
-            return JsonResponse({"message": "No new data to post or update."})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"message": "No new data to post or update."})
+    except ValueError:
+        logger.exception("Value error encountered")
+        return JsonResponse({"error": "Invalid input provided"}, status=400)
+    except DatabaseError:
+        logger.exception("Database error encountered")
+        return JsonResponse({"error": "Problem accessing the database"}, status=500)
+    except Exception:  # As a last resort
+        logger.exception("Unexpected error occurred")
+        return JsonResponse({"error": "An unexpected error occurred"}, status=500)
 
 
 def fetch_data_from_my_api():
@@ -40,21 +51,18 @@ def fetch_data_from_my_api():
         "Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
         "Content-Type": "application/json",
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
-    existing_data = {
-        item["name"]: item for item in response.json()
-    }  # Creating a dictionary of existing items by name
-    return existing_data
+    return {item["name"]: item for item in response.json()}
 
 
 def fetch_data_from_external_api():
     url = "https://mysupplier.mozzn.com/products/?page_size=999"
     headers = {
-        "Authorization": "SUPP eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM5MzA1MTYzLCJpYXQiOjE3MDc3NjkxNjMsImp0aSI6IjM5YzdmYzVlMmQ2YTQ1MGRiZTYwZjIxNmIwZTViMjljIiwidXNlcl9pZCI6MTJ9.-P2ZPwdyUkImvm34_RWi-fB3Pjk_rFGzKAc7Ywg8uSo",
+        "Authorization": "SUPP eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM5MzA1MTYzLCJpYXQiOjE3MDc3NjkxNjMsImp0aSI6IjM5YzdmYzVlMmQ2YTQ1MGRiZTYwZjIxNmIwZTViMjljIiwidXNlcl9pZCI6MTJ9.-P2ZPwdyUkImvm34_RWi-fB3Pjk_rFGzKAc7Ywg8uSo",  # noqa: E501
         "Content-Type": "application/json",
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()  # Raises an exception for HTTP error responses
     return response.json()["results"]
 
@@ -98,9 +106,8 @@ def post_data_to_my_api(prepared_data):
         "Content-Type": "application/json",
     }
     for product in prepared_data:
-        response = requests.post(url, json=product, headers=headers)
+        response = requests.post(url, json=product, headers=headers, timeout=10)
         response.raise_for_status()  # Raises an exception for HTTP error responses
-        print("Product created:", response.json())
 
 
 def patch_data_to_my_api(patch_data):
@@ -114,9 +121,13 @@ def patch_data_to_my_api(patch_data):
 
     for product in patch_data:
         product_url = url_template.format(id=product["id"])
-        response = requests.patch(product_url, json=product, headers=headers)
+        response = requests.patch(
+            product_url,
+            json=product,
+            headers=headers,
+            timeout=10,
+        )
         response.raise_for_status()
-        print("Product updated:", response.json())
 
 
 class QrSerializer(serializers.ModelSerializer):
@@ -244,11 +255,9 @@ def refresh_api_unit(request):
             {"error": "Data format error - missing key: " + str(e)},
             status=500,
         )
-    except Exception as e:
-        return JsonResponse(
-            {"error": "An unexpected error occurred: " + str(e)},
-            status=500,
-        )
+    except ValueError:
+        logger.exception("Value error encountered")
+        return JsonResponse({"error": "Invalid input provided"}, status=400)
 
 
 def fetch_data_from_my_unit():  # Fetch data from my API
@@ -257,25 +266,18 @@ def fetch_data_from_my_unit():  # Fetch data from my API
         "Authorization": "Token e60c85b3f42fdd2c3f4d9ecb394b99d532f312f1",
         "Content-Type": "application/json",
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
-    print(
-        "API response:",
-        response.text,
-    )  # Add this line to debug the actual API response
-    existing_data = {
-        item["product_unit_name"]: item for item in response.json()
-    }  # Creating a dictionary of existing items by name
-    return existing_data
+    return {item["product_unit_name"]: item for item in response.json()}
 
 
 def fetch_data_from_unit():  # Fetch data from external API
     url = "https://mysupplier.mozzn.com/products/units/?page_size=9999"
     headers = {
-        "Authorization": "SUPP eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM5MzA1MTYzLCJpYXQiOjE3MDc3NjkxNjMsImp0aSI6IjM5YzdmYzVlMmQ2YTQ1MGRiZTYwZjIxNmIwZTViMjljIiwidXNlcl9pZCI6MTJ9.-P2ZPwdyUkImvm34_RWi-fB3Pjk_rFGzKAc7Ywg8uSo",
+        "Authorization": "SUPP eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM5MzA1MTYzLCJpYXQiOjE3MDc3NjkxNjMsImp0aSI6IjM5YzdmYzVlMmQ2YTQ1MGRiZTYwZjIxNmIwZTViMjljIiwidXNlcl9pZCI6MTJ9.-P2ZPwdyUkImvm34_RWi-fB3Pjk_rFGzKAc7Ywg8uSo",  # noqa: E501
         "Content-Type": "application/json",
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
     data = response.json()
 
@@ -283,17 +285,14 @@ def fetch_data_from_unit():  # Fetch data from external API
     for item in data["results"]:
         if "created_by" in item:
             del item["created_by"]
-    print("API response:", data)  # Add this line to debug the actual API response
     return data["results"]
 
 
 def prepare_data_for_post_unit(my_data, external_data):  # Prepare data for POST/PATCH
     new_data = []
     patch_data = []
-    print("test")
 
     for item in external_data:
-        print("test inside item")
         try:
             if item["product_unit_name"] in my_data:
                 existing_item = my_data[item["product_unit_name"]]
@@ -301,11 +300,9 @@ def prepare_data_for_post_unit(my_data, external_data):  # Prepare data for POST
                     patch_data.append(item)
             else:
                 new_data.append(item)
-        except TypeError as e:
-            print(
-                f"Error processing item {item}: {e!s}",
-            )  # Log any errors in item processing
-            continue
+        except ValueError:
+            logger.exception("Value error encountered")
+            return JsonResponse({"error": "Invalid input provided"}, status=400)
 
     return new_data, patch_data
 
@@ -318,22 +315,24 @@ def post_data_to_my_api_unit(new_data):  # POST
     }
     for product_unit in new_data:
         try:
-            response = requests.post(url, json=product_unit, headers=headers)
-            response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
-            print(
-                "Product unit created:", response.json()
-            )  # Print success message and response
-        except requests.exceptions.HTTPError as err:
-            print("Failed to create product unit. Status Code:", response.status_code)
+            response = requests.post(
+                url,
+                json=product_unit,
+                headers=headers,
+                timeout=10,
+            )
+            response.raise_for_status()  # unsuccessful status codes
+
+        except requests.exceptions.HTTPError:
+            logger.exception("Failed to create product unit: %s", response.status_code)
             try:
-                # Attempt to print JSON error message if it exists
-                print("Error message:", response.json())
+                # Attempt to log JSON error message if it exists
+                logger.exception("Error message: %s", response.json())
             except ValueError:
-                # If response is not in JSON format, print the raw response text
-                print("Error response:", response.text)
-        except requests.exceptions.RequestException as e:
-            # Handle other requests exceptions like connection errors
-            print("A requests exception occurred:", e)
+                # If response is not in JSON format, log the raw response text
+                logger.exception("Error response: %s", response.text)
+        except requests.exceptions.RequestException:
+            logger.exception("A requests exception occurred")
 
 
 def patch_data_to_my_api_unit(patch_data):  # PATCH
@@ -344,6 +343,10 @@ def patch_data_to_my_api_unit(patch_data):  # PATCH
     }
     for product_unit in patch_data:
         product_url = url_template.format(id=product_unit["id"])
-        response = requests.patch(product_url, json=product_unit, headers=headers)
+        response = requests.patch(
+            product_url,
+            json=product_unit,
+            headers=headers,
+            timeout=10,
+        )
         response.raise_for_status()
-        print("Product unit updated:", response.json())
