@@ -1,13 +1,11 @@
-# ruff: noqa
 from django.contrib import admin
 from django.utils.html import format_html
-from django.utils.html import mark_safe
 
-from .models import Transfer
 from .models import Product
 from .models import ProductUnit
 from .models import Qr
 from .models import Test
+from .models import Transfer
 from .models import Unit
 from .models import Wh
 from .models import WhType
@@ -43,7 +41,9 @@ class ProductUnitAdmin(admin.ModelAdmin):
         description="Picture",
     )
     def get_image(self, obj):
-        return mark_safe(f'<img src="{obj.picture}" width="100" height="100" />')
+        if obj.picture:
+            return format_html('<img src="{}" width="100" height="100" />', obj.picture)
+        return "No Image"
 
 
 @admin.register(Transfer)
@@ -55,14 +55,7 @@ class TransferAdmin(admin.ModelAdmin):
     )  # Columns to display in the admin list view
 
 
-# from .models import warehouse
-
-# class warehouseAdmin(admin.ModelAdmin):
-#    list_display = ('name', 'quantity')
-
-
-# admin.site.register(warehouse, warehouseAdmin)
-class creatorAdmin(admin.ModelAdmin):
+class CreatorAdmin(admin.ModelAdmin):
     exclude = (
         "creator",
         "created_at",
@@ -76,7 +69,7 @@ class creatorAdmin(admin.ModelAdmin):
 
 
 @admin.register(Test)
-class testAdmin(creatorAdmin):
+class TestAdmin(CreatorAdmin):
     list_display = (
         "name",
         "created_at",
@@ -86,7 +79,7 @@ class testAdmin(creatorAdmin):
 
 
 @admin.register(Product)
-class productAdmin(admin.ModelAdmin):
+class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "is_active",
@@ -99,7 +92,7 @@ class productAdmin(admin.ModelAdmin):
 
 
 @admin.register(Unit)
-class UnitAdmin(creatorAdmin):
+class UnitAdmin(CreatorAdmin):
     list_display = (
         "name",
         "created_at",
@@ -110,17 +103,17 @@ class UnitAdmin(creatorAdmin):
 
 
 @admin.register(Wh)
-class whAdmin(admin.ModelAdmin):
+class WhAdmin(admin.ModelAdmin):
     list_display = ("name", "Smacc_Code")  # Columns to display in the admin list view
 
 
 @admin.register(Qr)
-class qrAdmin(admin.ModelAdmin):
+class QrAdmin(admin.ModelAdmin):
     list_display = ("wh", "productunit", "quantity", "created_at", "updated_at")
     readonly_fields = ("created_at", "updated_at")
-    # autocomplete_fields = ["productunit"]  # Enable autocomplete here
+    autocomplete_fields = ["productunit"]  # Enable autocomplete here
 
 
 @admin.register(WhType)
-class whtypeAdmin(admin.ModelAdmin):
+class WhtypeAdmin(admin.ModelAdmin):
     list_display = ("name",)  # Columns to display in the admin list view
