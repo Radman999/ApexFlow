@@ -1,4 +1,4 @@
-# ruff: noqa: ERA001, E501
+# ruff: noqa: E501
 """Base settings to build other settings files upon."""
 
 from pathlib import Path
@@ -31,8 +31,8 @@ LANGUAGE_CODE = "ar-sa"
 LANGUAGES = [
     ("en", _("English")),
     ("ar", _("Arabic")),
-    # ('fr-fr', _('French')),
-    # ('pt-br', _('Portuguese')),
+    ("fr-fr", _("French")),
+
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
