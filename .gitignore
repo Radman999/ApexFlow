@@ -338,3 +338,4 @@ ApexFlow/media/
 .envs/*
 !.envs/.local/
 .vscode/launch.json
+apex/media/qr_codes/

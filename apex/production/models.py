@@ -1,4 +1,8 @@
+from io import BytesIO
+
+import qrcode
 from django.conf import settings
+from django.core.files import File
 from django.db import models
 from django.db import transaction
 from django.db.models import F
@@ -123,9 +127,34 @@ class Qr(models.Model):
     quantity = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
 
     def __str__(self):
         return f"{self.wh} - {self.productunit} - Quantity: ({self.quantity})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.qr_code:
+            api = f"/api/QR/{self.id}/"
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(api)
+            qr.make(fit=True)
+
+            img = qr.make_image(fill_color="black", back_color="white")
+
+            # Save QR code as an image file
+            fname = f"qr_code-{self.id}.png"
+            buffer = BytesIO()
+            img.save(buffer, "PNG")
+            self.qr_code.save(fname, File(buffer), save=False)
+
+            buffer.close()
+            super().save(*args, **kwargs)
 
 
 class Transfer(models.Model):
