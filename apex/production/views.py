@@ -7,14 +7,13 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from requests.exceptions import RequestException
-from rest_framework import filters
 from rest_framework import serializers
 from rest_framework import viewsets
 
 from .models import Product
 from .models import ProductUnit
-from .models import Qr  # , WarehouseViewSet
-from .models import Transfer  # , WarehouseViewSet
+from .models import Qr
+from .models import Transfer
 from .models import Wh
 
 logger = logging.getLogger(__name__)
@@ -131,23 +130,81 @@ def patch_data_to_my_api(patch_data):
 
 
 class QrSerializer(serializers.ModelSerializer):
-    # Use PrimaryKeyRelatedField or SlugRelatedField for writable foreign keys
-    wh = serializers.PrimaryKeyRelatedField(queryset=Wh.objects.all())
+    productunit_name = serializers.SerializerMethodField()
+    wh_name = serializers.SerializerMethodField()
+    wh_smacc_code = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
 
     class Meta:
         model = Qr
-        fields = ["id", "wh", "productunit", "quantity", "created_at", "updated_at"]
+        fields = "__all__"
         read_only_fields = ["created_at", "updated_at"]
 
-    def to_representation(self, instance):
-        """Modify the output of certain fields for serialization"""
-        representation = super().to_representation(instance)
-        representation["wh"] = (
-            f"{instance.wh.name} - {instance.wh.Smacc_Code}"  # Custom output for wh
-        )
-        representation["productunit"] = f"{instance.productunit.ProductUnit_name}"
+    def get_productunit_name(self, obj):
+        # Return the related product_unit_name
+        return obj.productunit.product_unit_name if obj.productunit else None
 
-        return representation
+    def get_wh_name(self, obj):
+        # Return the related product_unit_name
+        return obj.wh.name if obj.wh else None
+
+    def get_wh_smacc_code(self, obj):
+        # Return the related product_unit_name
+        return obj.wh.Smacc_Code if obj.wh else None
+
+
+class QrViewSet(viewsets.ModelViewSet):
+    queryset = Qr.objects.all()
+    serializer_class = QrSerializer
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="created_at",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter QR codes by creation date (YYYY-MM-DD)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="productunit_name",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter QR codes by product unit name",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="wh_name",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter QR codes by warehouse name",
+                required=False,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        Comment here :D.
+        """
+        return super().list(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        created_at = self.request.query_params.get("created_at", None)
+        productunit_name = self.request.query_params.get("productunit_name", None)
+        wh_name = self.request.query_params.get("wh_name", None)
+        if created_at is not None:
+            queryset = queryset.filter(created_at__date=created_at)
+
+        if productunit_name is not None:
+            queryset = queryset.filter(
+                productunit__product_unit_name__icontains=productunit_name,
+            )
+        if wh_name is not None:
+            queryset = queryset.filter(wh__name__icontains=wh_name)
+
+        return queryset
 
 
 class WhSerializer(serializers.ModelSerializer):
@@ -159,13 +216,6 @@ class WhSerializer(serializers.ModelSerializer):
 class WhViewSet(viewsets.ModelViewSet):
     queryset = Wh.objects.all()
     serializer_class = WhSerializer
-
-
-class QrViewSet(viewsets.ModelViewSet):
-    queryset = Qr.objects.all()
-    serializer_class = QrSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ["wh__name", "wh__Smacc_Code"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
