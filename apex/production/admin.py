@@ -109,9 +109,25 @@ class WhAdmin(admin.ModelAdmin):
 
 @admin.register(Qr)
 class QrAdmin(admin.ModelAdmin):
-    list_display = ("wh", "productunit", "quantity", "created_at", "updated_at")
+    list_display = (
+        "wh",
+        "productunit",
+        "quantity",
+        "created_at",
+        "updated_at",
+        "qr_code_image",
+    )
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ["productunit"]  # Enable autocomplete here
+
+    def qr_code_image(self, obj):
+        if obj.qr_code:
+            return format_html(
+                '<img src="{}" width="100" height="100"/>', obj.qr_code.url,
+            )
+        return "No image"
+
+    qr_code_image.short_description = "QR Code"
 
 
 @admin.register(WhType)

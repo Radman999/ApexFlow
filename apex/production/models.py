@@ -1,7 +1,10 @@
+from io import BytesIO
+
+import qrcode
 from django.conf import settings
+from django.core.files import File
 from django.db import models
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -123,9 +126,40 @@ class Qr(models.Model):
     quantity = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
+    generate_qr_flag = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.wh} - {self.productunit} - Quantity: ({self.quantity})"
+
+    def save(self, *args, **kwargs):
+        # Call the real save() method first to ensure the model is saved to the DB
+        super().save(*args, **kwargs)
+
+        # Check if the qr_code already exists to avoid regenerating it unnecessarily
+        # Only generate a QR code if the flag is True
+        if self.generate_qr_flag and not self.qr_code:
+            self.generate_qr_code()
+            super().save(*args, **kwargs)  # Save again with the QR code
+
+    def generate_qr_code(self):
+        """Generates a QR code and attaches it to the qr_code field."""
+        api = f"/api/QR/{self.id}/"
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(api)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+        fname = f"qr_code-{self.id}.png"
+        buffer = BytesIO()
+        img.save(buffer, "PNG")
+        self.qr_code.save(fname, File(buffer), save=False)
+        buffer.close()
 
 
 class Transfer(models.Model):
@@ -138,37 +172,44 @@ class Transfer(models.Model):
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
-            # Check if there's an existing qr for 'To' wh and 'From.productunit'
-            existing_qr = Qr.objects.filter(
-                wh=self.To,
-                productunit=self.From.productunit,
-                created_at=self.From.created_at,
-            ).first()
-            if existing_qr:
-                # If exists, update the quantity
-                if self.From.quantity >= self.quantity:
-                    self.From.quantity = F("quantity") - self.quantity
-                    self.From.save()
-                    existing_qr.quantity = F("quantity") + self.quantity
-                    existing_qr.save()
-                else:
-                    error_message = "Not enough stock"
-                    raise ValueError(error_message)
-            elif self.From.quantity >= self.quantity:
-                self.From.quantity = F("quantity") - self.quantity
+            # Disable QR code generation during transfer process
+            self.From.generate_qr_flag = False
+            self.From.save()
+
+            # Logic to handle transferring items
+            if self.From.quantity >= self.quantity:
+                self.From.quantity -= self.quantity
                 self.From.save()
-                Qr.objects.create(  # Possible Error had F841
+
+                # Update or create Qr for 'To'
+                existing_qr = Qr.objects.filter(
                     wh=self.To,
                     productunit=self.From.productunit,
-                    quantity=self.quantity,
                     created_at=self.From.created_at,
-                    updated_at=self.From.updated_at,
-                )
+                ).first()
+
+                if existing_qr:
+                    existing_qr.quantity += self.quantity
+                    existing_qr.generate_qr_flag = (
+                        False  # Ensure not to generate QR code
+                    )
+                    existing_qr.save()
+                else:
+                    Qr.objects.create(
+                        wh=self.To,
+                        productunit=self.From.productunit,
+                        quantity=self.quantity,
+                        created_at=self.From.created_at,
+                        updated_at=self.From.updated_at,
+                        qr_code=None,
+                        generate_qr_flag=False,  # Prevent QR code generation
+                    )
             else:
-                error_message = "Not enough stock in warehouse to transfer."
+                error_message = "Not enough stock to complete the transfer."
                 raise ValueError(error_message)
 
-            # Proceed with saving the Transfer
+            # Restore QR code generation flag and save the Transfer
+            self.From.generate_qr_flag = True
             super().save(*args, **kwargs)
 
 
