@@ -1,22 +1,18 @@
-# ruff: noqa
 from django.contrib import admin
 from django.utils.html import format_html
-from django.utils.html import mark_safe
 
+from .models import Product
+from .models import ProductUnit
+from .models import Qr
+from .models import Test
 from .models import Transfer
-from .models import product
-from .models import product_unit
-from .models import productunit
-from .models import qr
-from .models import test
-from .models import unit
-from .models import unit_frac
-from .models import wh
-from .models import whtype
+from .models import Unit
+from .models import Wh
+from .models import WhType
 
 
-@admin.register(product_unit)
-class product_unitAdmin(admin.ModelAdmin):
+@admin.register(ProductUnit)
+class ProductUnitAdmin(admin.ModelAdmin):
     list_display = (
         "product_unit_name",
         "get_image",
@@ -45,7 +41,9 @@ class product_unitAdmin(admin.ModelAdmin):
         description="Picture",
     )
     def get_image(self, obj):
-        return mark_safe(f'<img src="{obj.picture}" width="100" height="100" />')
+        if obj.picture:
+            return format_html('<img src="{}" width="100" height="100" />', obj.picture)
+        return "No Image"
 
 
 @admin.register(Transfer)
@@ -57,14 +55,7 @@ class TransferAdmin(admin.ModelAdmin):
     )  # Columns to display in the admin list view
 
 
-# from .models import warehouse
-
-# class warehouseAdmin(admin.ModelAdmin):
-#    list_display = ('name', 'quantity')
-
-
-# admin.site.register(warehouse, warehouseAdmin)
-class creatorAdmin(admin.ModelAdmin):
+class CreatorAdmin(admin.ModelAdmin):
     exclude = (
         "creator",
         "created_at",
@@ -77,8 +68,8 @@ class creatorAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(test)
-class testAdmin(creatorAdmin):
+@admin.register(Test)
+class TestAdmin(CreatorAdmin):
     list_display = (
         "name",
         "created_at",
@@ -87,8 +78,8 @@ class testAdmin(creatorAdmin):
     )  # Columns to display in the admin list view
 
 
-@admin.register(product)
-class productAdmin(admin.ModelAdmin):
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "is_active",
@@ -100,8 +91,8 @@ class productAdmin(admin.ModelAdmin):
     exclude = ("created_at", "updated_at")
 
 
-@admin.register(unit)
-class UnitAdmin(creatorAdmin):
+@admin.register(Unit)
+class UnitAdmin(CreatorAdmin):
     list_display = (
         "name",
         "created_at",
@@ -111,57 +102,34 @@ class UnitAdmin(creatorAdmin):
     exclude = ("created_at", "updated_at")
 
 
-@admin.register(productunit)
-class productunitAdmin(admin.ModelAdmin):
-    list_display = (
-        "product",
-        "unit",
-        "unit_frac",
-        "item_code",
-        "created_at",
-        "updated_at",
-        "image_tag",
-    )  # Columns to display in the admin list view
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-        "image_tag",
-    )  # Make these fields read-only
-
-    @admin.display(
-        description="Image",
-    )
-    def image_tag(self, obj):
-        if obj.image:
-            return format_html(
-                '<img src="{}" style="width: 45px; height:auto;">',
-                obj.image.url,
-            )
-        return "No Image"
-
-
-@admin.register(unit_frac)
-class unit_fracAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "created_at",
-        "updated_at",
-    )  # Columns to display in the admin list view
-    readonly_fields = ("created_at", "updated_at")  # Make these fields read-only
-
-
-@admin.register(wh)
-class whAdmin(admin.ModelAdmin):
+@admin.register(Wh)
+class WhAdmin(admin.ModelAdmin):
     list_display = ("name", "Smacc_Code")  # Columns to display in the admin list view
 
 
-@admin.register(qr)
-class qrAdmin(admin.ModelAdmin):
-    list_display = ("wh", "productunit", "quantity", "created_at", "updated_at")
+@admin.register(Qr)
+class QrAdmin(admin.ModelAdmin):
+    list_display = (
+        "wh",
+        "productunit",
+        "quantity",
+        "created_at",
+        "updated_at",
+        "qr_code_image",
+    )
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ["productunit"]  # Enable autocomplete here
 
+    def qr_code_image(self, obj):
+        if obj.qr_code:
+            return format_html(
+                '<img src="{}" width="100" height="100"/>', obj.qr_code.url,
+            )
+        return "No image"
 
-@admin.register(whtype)
-class whtypeAdmin(admin.ModelAdmin):
+    qr_code_image.short_description = "QR Code"
+
+
+@admin.register(WhType)
+class WhtypeAdmin(admin.ModelAdmin):
     list_display = ("name",)  # Columns to display in the admin list view
