@@ -13,6 +13,7 @@ from rest_framework import viewsets
 from .models import Product
 from .models import ProductUnit
 from .models import Qr
+from .models import Track
 from .models import Transfer
 from .models import Wh
 
@@ -135,6 +136,8 @@ class QrSerializer(serializers.ModelSerializer):
     wh_smacc_code = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
     updated_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+    unit_fraction = serializers.SerializerMethodField()
+    item_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Qr
@@ -152,6 +155,14 @@ class QrSerializer(serializers.ModelSerializer):
     def get_wh_smacc_code(self, obj):
         # Return the related product_unit_name
         return obj.wh.Smacc_Code if obj.wh else None
+
+    def get_unit_fraction(self, obj):
+        # Return the related product_unit_name
+        return obj.productunit.unit_fraction if obj.productunit else None
+
+    def get_item_code(self, obj):
+        # Return the related product_unit_name
+        return obj.productunit.item_code if obj.productunit else None
 
 
 class QrViewSet(viewsets.ModelViewSet):
@@ -400,3 +411,30 @@ def patch_data_to_my_api_unit(patch_data):  # PATCH
             timeout=10,
         )
         response.raise_for_status()
+
+
+class TrackSerializer(serializers.ModelSerializer):
+    transfers = TransferSerializer(many=True, required=False)
+
+    class Meta:
+        model = Track
+        fields = ["id", "transfers"]
+
+    def create(self, validated_data):
+        transfers_data = validated_data.pop("transfers", [])
+        track = Track.objects.create(**validated_data)
+        for transfer_data in transfers_data:
+            Transfer.objects.create(reference=track, **transfer_data)
+        return track
+
+    def update(self, instance, validated_data):
+        instance.transfers.all().delete()  # Clear existing transfers
+        transfers_data = validated_data.pop("transfers", [])
+        for transfer_data in transfers_data:
+            Transfer.objects.create(reference=instance, **transfer_data)
+        return super().update(instance, validated_data)
+
+
+class TrackViewSet(viewsets.ModelViewSet):
+    queryset = Track.objects.all().prefetch_related("transfers")
+    serializer_class = TrackSerializer
