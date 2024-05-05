@@ -162,7 +162,18 @@ class Qr(models.Model):
         buffer.close()
 
 
+class Track(models.Model):
+    # This model acts as the parent, if needed additional fields can be added here
+    def __str__(self):
+        return f"Track {self.id}"
+
+
 class Transfer(models.Model):
+    reference = models.ForeignKey(
+        Track,
+        on_delete=models.CASCADE,
+        related_name="transfers",
+    )
     From = models.ForeignKey(Qr, on_delete=models.CASCADE, related_name="transfer_from")
     To = models.ForeignKey(Wh, on_delete=models.CASCADE, related_name="transfer_to")
     quantity = models.IntegerField()

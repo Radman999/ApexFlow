@@ -5,6 +5,7 @@ from .models import Product
 from .models import ProductUnit
 from .models import Qr
 from .models import Test
+from .models import Track
 from .models import Transfer
 from .models import Unit
 from .models import Wh
@@ -120,16 +121,30 @@ class QrAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ["productunit"]  # Enable autocomplete here
 
+    @admin.display(
+        description="QR Code",
+    )
     def qr_code_image(self, obj):
         if obj.qr_code:
             return format_html(
-                '<img src="{}" width="100" height="100"/>', obj.qr_code.url,
+                '<img src="{}" width="100" height="100"/>',
+                obj.qr_code.url,
             )
         return "No image"
-
-    qr_code_image.short_description = "QR Code"
 
 
 @admin.register(WhType)
 class WhtypeAdmin(admin.ModelAdmin):
     list_display = ("name",)  # Columns to display in the admin list view
+
+
+class TransferInline(admin.TabularInline):
+    model = Transfer
+    extra = 1  # Defines how many rows are shown by default
+
+
+@admin.register(Track)
+class TrackAdmin(admin.ModelAdmin):
+    inlines = [
+        TransferInline,
+    ]
