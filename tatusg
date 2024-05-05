@@ -1,0 +1,351 @@
+[33mcommit dab83b02b5cb9d490c79f5c2c4bcf5c515973e74[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mRadman[m[33m)[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:39:27 2024 +0300
+
+    Update language options in base settings
+
+[33mcommit fb946d7f43110ec4993140bac5e8cea185cff847[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:36:24 2024 +0300
+
+    Revert "Uncommented French ;)"
+    
+    This reverts commit c5013a85e8017a29511ba6e30314e9fa7b005264.
+
+[33mcommit c5013a85e8017a29511ba6e30314e9fa7b005264[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:24:31 2024 +0300
+
+    Uncommented French ;)
+
+[33mcommit 7c2e10847b6e6eae809290662215c045fc905668[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:19:54 2024 +0300
+
+    Deleted unnecessary file
+
+[33mcommit 366d740d71b44c63de31f60b3731c0524f6d5a6b[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:18:12 2024 +0300
+
+    views.py Ruff Rules and logger library
+
+[33mcommit 334075876a504f80ef6e2dbef06b37a2b6a11e6d[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 17:15:41 2024 +0300
+
+    urls.py Ruff Rules
+
+[33mcommit 52fb04e9662bba31c4f84ff43cceb02a365bcb5a[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 16:25:51 2024 +0300
+
+    Refactor admin.py to improve image display and ruff rules
+
+[33mcommit 598c1326ac14b2e5db710954ef26ea9c58da6139[m[33m ([m[1;31morigin/ruff_models.py[m[33m, [m[1;32mruff_models.py[m[33m)[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 15:50:45 2024 +0300
+
+    Update ruff rules for models.py and affected files
+
+[33mcommit c2d564eec34526f493d85e6553e853cc6d4cd031[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Merge: 9818085 28f9fe2
+Author: Radman999 <135631950+Radman999@users.noreply.github.com>
+Date:   Sat Apr 27 12:52:38 2024 +0300
+
+    Merge pull request #10 from Radman999/configure-cors
+    
+    configure-cors
+
+[33mcommit 98180859f7b33ba0a74a52ae3a324673cd546033[m
+Merge: ebf144f 04feee1
+Author: Radman999 <135631950+Radman999@users.noreply.github.com>
+Date:   Sat Apr 27 12:48:45 2024 +0300
+
+    Merge pull request #13 from Radman999/api-modifications
+    
+    Add Warehouse API + Modifications
+
+[33mcommit 04feee1062ffd5680c4bb0a2577fccaa0f003946[m[33m ([m[1;31morigin/api-modifications[m[33m, [m[1;32mapi-modifications[m[33m)[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 27 12:35:04 2024 +0300
+
+    api modification
+
+[33mcommit 28f9fe2f6b84d50afc3226535088ca0a9e5a3622[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Thu Apr 25 22:28:07 2024 +0200
+
+    configure cors
+
+[33mcommit ebf144fdca5b42fc3bef01fc3d67f1c39a86e0d2[m
+Merge: 16156ac a4c19de
+Author: Mohamed Ben Makhlouf <med.b.makhlouf@gmail.com>
+Date:   Thu Apr 25 21:56:58 2024 +0200
+
+    Merge pull request #7 from Radman999/dependabot/pip/coverage-7.5.0
+    
+    Bump coverage from 7.4.4 to 7.5.0
+
+[33mcommit 16156ac38eeef5c7f3b82b21e4684f1e7e8306c6[m
+Merge: 328319a 60bf487
+Author: Mohamed Ben Makhlouf <med.b.makhlouf@gmail.com>
+Date:   Thu Apr 25 21:56:52 2024 +0200
+
+    Merge pull request #8 from Radman999/dependabot/pip/django-allauth-mfa--0.62.1
+    
+    Bump django-allauth[mfa] from 0.62.0 to 0.62.1
+
+[33mcommit 60bf48758e18baa25f1470a0d96c5e4d5c8a935b[m
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Wed Apr 24 17:49:51 2024 +0000
+
+    Bump django-allauth[mfa] from 0.62.0 to 0.62.1
+    
+    Bumps [django-allauth[mfa]](https://github.com/pennersr/django-allauth) from 0.62.0 to 0.62.1.
+    - [Changelog](https://github.com/pennersr/django-allauth/blob/main/ChangeLog.rst)
+    - [Commits](https://github.com/pennersr/django-allauth/compare/0.62.0...0.62.1)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: django-allauth[mfa]
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+[33mcommit a4c19defd299eb287f86f2ae940a4bddd7b2cfd1[m
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Wed Apr 24 17:49:47 2024 +0000
+
+    Bump coverage from 7.4.4 to 7.5.0
+    
+    Bumps [coverage](https://github.com/nedbat/coveragepy) from 7.4.4 to 7.5.0.
+    - [Release notes](https://github.com/nedbat/coveragepy/releases)
+    - [Changelog](https://github.com/nedbat/coveragepy/blob/master/CHANGES.rst)
+    - [Commits](https://github.com/nedbat/coveragepy/compare/7.4.4...7.5.0)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: coverage
+      dependency-type: direct:production
+      update-type: version-update:semver-minor
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+[33mcommit 328319acea645cff14cc6df78d979d2d1af0edc3[m
+Merge: 5f0004e 5264dec
+Author: Mohamed Ben Makhlouf <med.b.makhlouf@gmail.com>
+Date:   Wed Apr 24 13:22:27 2024 +0200
+
+    Merge pull request #5 from Radman999/test
+    
+    test
+
+[33mcommit 5264decee50f15695ed48435c9eba9a32927a9a4[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Wed Apr 24 13:20:41 2024 +0200
+
+    remove old requirements
+
+[33mcommit 5f0004eef1d15cdc17732522b0d44040c67f6c73[m
+Merge: 6db3995 f0fbd65
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Wed Apr 24 11:15:55 2024 +0000
+
+    Merge pull request #3 from Radman999/dependabot/pip/django-allauth-mfa--0.62.0
+
+[33mcommit 6db399538889c987ed755a2af2893ff826954e4d[m
+Merge: 8973a90 6e511b0
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Wed Apr 24 11:15:41 2024 +0000
+
+    Merge pull request #4 from Radman999/dependabot/pip/redis-5.0.4
+
+[33mcommit 8973a902cf54ba989ce25650965faf1982fbd30a[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Wed Apr 24 13:11:48 2024 +0200
+
+    change title
+
+[33mcommit 33de96b0de1cc2c3e08616c25514cf4b19c82f8c[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Wed Apr 24 13:11:18 2024 +0200
+
+    change title
+
+[33mcommit 6e511b086d07974aeaa1782d0a759a4a97e22c21[m
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Tue Apr 23 17:34:39 2024 +0000
+
+    Bump redis from 5.0.3 to 5.0.4
+    
+    Bumps [redis](https://github.com/redis/redis-py) from 5.0.3 to 5.0.4.
+    - [Release notes](https://github.com/redis/redis-py/releases)
+    - [Changelog](https://github.com/redis/redis-py/blob/master/CHANGES)
+    - [Commits](https://github.com/redis/redis-py/compare/v5.0.3...v5.0.4)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: redis
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+[33mcommit f0fbd65559aa7959321e703181a87a3be868c987[m
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Tue Apr 23 17:34:28 2024 +0000
+
+    Bump django-allauth[mfa] from 0.61.1 to 0.62.0
+    
+    Bumps [django-allauth[mfa]](https://github.com/pennersr/django-allauth) from 0.61.1 to 0.62.0.
+    - [Changelog](https://github.com/pennersr/django-allauth/blob/main/ChangeLog.rst)
+    - [Commits](https://github.com/pennersr/django-allauth/compare/0.61.1...0.62.0)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: django-allauth[mfa]
+      dependency-type: direct:production
+      update-type: version-update:semver-minor
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+[33mcommit 1670e7fb78d4f7fd44ccccc13e59af79ab052844[m
+Merge: 6f51b9a 30e9700
+Author: Radman999 <135631950+Radman999@users.noreply.github.com>
+Date:   Mon Apr 22 11:55:27 2024 +0300
+
+    Merge pull request #1 from Radman999/new-structure
+    
+    New Structure For Prod & Dev
+
+[33mcommit 30e97009030595e97df50c17be151949a15786aa[m[33m ([m[1;31morigin/new-structure[m[33m)[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 01:22:19 2024 +0200
+
+    move files
+
+[33mcommit e44355f9e85f69b0145531d6381423f5be4ff7d1[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 01:06:58 2024 +0200
+
+    remove pyc files
+
+[33mcommit ccc63cca8c706c302bf9c133dd9657f176fc15b0[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 01:04:30 2024 +0200
+
+    run CI on any branche
+
+[33mcommit d79adbef7882c8f6bc1a22281c90ebc9a5a2e899[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 01:04:05 2024 +0200
+
+    run CI on any branche
+
+[33mcommit a7a42c675842d2673c9034ef4d3ceb295932092d[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 01:01:22 2024 +0200
+
+    run CI on any branche
+
+[33mcommit 6116a97d89c6307272c44863d132d143c00c26b6[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:52:24 2024 +0200
+
+    add other files
+
+[33mcommit 1554a44afbbf80212153eeea9de3a20533b5d475[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:51:38 2024 +0200
+
+    add admin file
+
+[33mcommit e6e7a314a86905f73b1893c4657e191c3be620c3[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:49:06 2024 +0200
+
+    regenerate migrations
+
+[33mcommit 49d4adb892e0c2eec35cb253694236c97e44ea8e[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:45:38 2024 +0200
+
+    lint files
+
+[33mcommit 9e4e077676b91f5a5424ee192f1fd590029f18c3[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:45:23 2024 +0200
+
+    lint files
+
+[33mcommit 48423bc8795557577d53bea83225293a529176a5[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:40:36 2024 +0200
+
+    add old req.txt
+
+[33mcommit 65662cdd7627d6d6dc05e84b46a8ba3c1efe8d7a[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:40:25 2024 +0200
+
+    move locale files
+
+[33mcommit 8d4434407f076781e6de50d3081ce7565b1d707f[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Mon Apr 22 00:40:18 2024 +0200
+
+    correct env files
+
+[33mcommit ac734d2d8f7b1356803ae60a7d89ae142c269811[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Sun Apr 21 22:52:35 2024 +0200
+
+    correct reqs.txt
+
+[33mcommit e28a0fa8979382862758840ab77da80aae981a5b[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Sun Apr 21 22:49:56 2024 +0200
+
+    setup project using cookiecutter for better structure
+
+[33mcommit 1f3bfd96f144aa5798fd268477101450720725f8[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Sun Apr 21 22:49:48 2024 +0200
+
+    setup project using cookiecutter for better structure
+
+[33mcommit 047c62b7e4748692774fea297ab6edeef64cd22f[m
+Author: Mohamed Ben Makhlouf <benmakhlouf@softcatalyst.com>
+Date:   Sun Apr 21 22:45:12 2024 +0200
+
+    rm .venv
+
+[33mcommit 6f51b9a414530b90223a76a75b3233c5e783299a[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sun Apr 21 16:40:16 2024 +0300
+
+    There is still some needed work to do: 1- cleaning the codes 2- commenting 3- deleteing models that were created for testing... Give profesional advise as to how to commit for example or the common practices for profesional django devolopers.
+
+[33mcommit 21cd1e58f339894294099c1e2315f3ab9152dfb2[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Sat Apr 20 11:34:30 2024 +0300
+
+    hopefully this will work
+
+[33mcommit 43545eab66a02196ed9316c70040d89806ab010a[m
+Author: Radman999 <m.r.r.radman@gmail.com>
+Date:   Mon Apr 15 11:19:44 2024 +0300
+
+    Initial commit
+
+[33mcommit c92ccce3cbaa7bb432f749d73b30fae072cab415[m
+Author: Radman999 <135631950+Radman999@users.noreply.github.com>
+Date:   Mon Apr 15 07:11:27 2024 +0300
+
+    Add files via upload
