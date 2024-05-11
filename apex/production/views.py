@@ -134,7 +134,7 @@ class QrSerializer(serializers.ModelSerializer):
     productunit_name = serializers.SerializerMethodField()
     wh_name = serializers.SerializerMethodField()
     wh_smacc_code = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+    created_at = serializers.DateTimeField(format="%Y-%m-%d-%H-%M-%S", read_only=True)
     updated_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
     unit_fraction = serializers.SerializerMethodField()
     item_code = serializers.SerializerMethodField()
