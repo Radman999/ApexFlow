@@ -63,7 +63,7 @@ class ProductUnit(models.Model):
     sync_quantity_salla = models.BooleanField(null=True, blank=True)
     quantity_salla = models.BigIntegerField(null=True, blank=True)
     auto_add = models.BooleanField(null=True, blank=True)
-    item_code = models.BigIntegerField(null=True, blank=True)
+    item_code = models.CharField(max_length=10, default="", blank=True)
     related_item_code = models.JSONField(null=True, default=dict, blank=True)
     product = models.IntegerField(null=True, blank=True)
     unit = models.IntegerField(null=True, blank=True)

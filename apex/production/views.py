@@ -134,7 +134,7 @@ class QrSerializer(serializers.ModelSerializer):
     productunit_name = serializers.SerializerMethodField()
     wh_name = serializers.SerializerMethodField()
     wh_smacc_code = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+    created_at = serializers.DateTimeField(format="%Y-%m-%d-%H-%M-%S", read_only=True)
     updated_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
     unit_fraction = serializers.SerializerMethodField()
     item_code = serializers.SerializerMethodField()
@@ -414,11 +414,17 @@ def patch_data_to_my_api_unit(patch_data):  # PATCH
 
 
 class TrackSerializer(serializers.ModelSerializer):
-    transfers = TransferSerializer(many=True, required=False)
+    transfers = TransferSerializer(many=True, required=True)
 
     class Meta:
         model = Track
         fields = ["id", "transfers"]
+
+    def validate_transfers(self, value):
+        if not value:
+            msg = "The 'transfers' field must not be empty."
+            raise serializers.ValidationError(msg)
+        return value
 
     def create(self, validated_data):
         transfers_data = validated_data.pop("transfers", [])
