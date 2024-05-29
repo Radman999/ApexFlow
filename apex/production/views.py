@@ -16,6 +16,7 @@ from .models import Qr
 from .models import Track
 from .models import Transfer
 from .models import Wh
+from .models import Zpl
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,67 @@ def patch_data_to_my_api(patch_data):
             timeout=10,
         )
         response.raise_for_status()
+
+
+class ZplSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%d-%H-%M-%S", read_only=True)
+    updated_at = serializers.DateTimeField(format="%Y-%m-%d-%H-%M-%S", read_only=True)
+    item_code = serializers.SerializerMethodField()
+    batch_quantity = serializers.SerializerMethodField()
+    wh_id = serializers.SerializerMethodField()
+    wh_name = serializers.SerializerMethodField()
+    wh_code = serializers.SerializerMethodField()
+    productunit_name = serializers.SerializerMethodField()
+    unit_fraction = serializers.SerializerMethodField()
+
+    def get_item_code(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.productunit.item_code if obj.qr.productunit else None
+
+    def get_batch_quantity(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.quantity if obj.qr else None
+
+    def get_wh_name(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.wh.name if obj.qr.wh else None
+
+    def get_wh_code(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.wh.Smacc_Code if obj.qr.wh else None
+
+    def get_wh_id(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.wh.id if obj.qr.wh else None
+
+    def get_unit_fraction(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.productunit.unit_fraction if obj.qr.productunit else None
+
+    def get_productunit_name(self, obj):
+        # Return the related product_unit_name
+        return obj.qr.productunit.product_unit_name if obj.qr.productunit else None
+    class Meta:
+        model = Zpl
+        fields = [
+            "id",
+            "qr",
+            "random_id",
+            "batch_quantity",
+            "wh_id",
+            "wh_name",
+            "wh_code",
+            "item_code",
+            "productunit_name",
+            "unit_fraction",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ZplViewSet(viewsets.ModelViewSet):
+    queryset = Zpl.objects.all()
+    serializer_class = ZplSerializer
 
 
 class QrSerializer(serializers.ModelSerializer):
@@ -268,7 +330,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 class TransferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transfer
-        fields = ["id", "From", "To", "quantity"]
+        fields = ["id", "From", "To"]
 
 
 class TransferViewSet(viewsets.ModelViewSet):
