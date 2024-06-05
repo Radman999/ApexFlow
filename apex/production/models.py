@@ -1,12 +1,24 @@
+import io
 import random
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import models
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
-# Create your models here.
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph
+from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus import Table
+from reportlab.platypus import TableStyle
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 
 class Product(models.Model):
@@ -196,10 +208,130 @@ class Qr(models.Model):
 
 
 class Track(models.Model):
-    # This model acts as the parent, if needed additional fields can be added here
+    pdf = models.FileField(upload_to="pdfs/", null=True, blank=True)
+
     def __str__(self):
         return f"Track {self.id}"
 
+    def save(self, *args, **kwargs):
+        # Save the instance first
+        super().save(*args, **kwargs)
+        # Generate PDF after the instance is saved
+        self.generate_pdf()
+
+    def generate_pdf(self):
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+
+        # Register a font that supports Arabic
+        pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+        transfers = [
+            {"product_name": "Product 1", "quantity": 10, "notes": ""},
+            {"product_name": "Product 2", "quantity": 5, "notes": ""},
+            # Add more transfers as needed
+        ]
+        
+        def register_fonts():
+            """Register fonts required for the PDF."""
+            pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+
+        def create_styles():
+            """Create and return custom styles for the PDF."""
+            styles = getSampleStyleSheet()
+            arabic_text_style = ParagraphStyle(
+                'ArabicStyle',
+                parent=styles['Normal'],
+                fontName='Arial',
+                fontSize=12,
+                alignment=2  # Right alignment
+            )
+            title_style = ParagraphStyle(
+                'TitleStyle',
+                parent=styles['Normal'],
+                alignment=1,  # Center alignment
+                fontName='Arial',
+                fontSize=12
+            )
+            return arabic_text_style, title_style
+
+        def create_paragraph(text, style):
+            """Create a Paragraph with reshaped and bidirectional text."""
+            reshaped_text = arabic_reshaper.reshape(text)
+            bidi_text = get_display(reshaped_text)
+            return Paragraph(bidi_text, style)
+
+        def create_table(data, col_widths, row_heights=None, style_commands=None):
+            """Create a table with the given data, column widths, and styles."""
+            table = Table(data, colWidths=col_widths, rowHeights=row_heights)
+            table_style = TableStyle(style_commands or [
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ])
+            table.setStyle(table_style)
+            return table
+
+        def create_document():
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            elements = []
+
+            register_fonts()
+            arabic_text_style, title_style = create_styles()
+
+            title = create_paragraph("تحميل من المكتب", title_style)
+            date = create_paragraph("التاريخ:", arabic_text_style)
+
+            # Create header row
+            header_data = ["ملاحظات", "عدد الكراتين", "اسم المنتج", "#"]
+            reshaped_header_data = [create_paragraph(item, arabic_text_style) for item in header_data]
+            data = [reshaped_header_data]
+
+            # Add transfer data
+            for idx, transfer in enumerate(transfers, start=1):
+                data.append([
+                    create_paragraph(transfer["notes"], arabic_text_style),
+                    transfer["quantity"],
+                    create_paragraph(transfer["product_name"], arabic_text_style),
+                    idx,
+                ])
+
+            # Add space and signature rows
+            space = create_table([[""]], [430], [15], [
+                ('BACKGROUND', (0, 0), (-1, -1), colors.gray),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ])
+
+            sign_data = [
+                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
+                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
+                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
+                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
+            ]
+            sign = create_table(sign_data, [300, 100, 30])
+
+            # Create main table
+            table = create_table(data, [150, 100, 150, 30], style_commands=[
+                ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),  # Changed to 'RIGHT' alignment
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey)
+            ])
+
+            elements.extend([title, date, table, space, sign])
+            doc.build(elements)
+
+            return buffer.getvalue()
+
+        # Generate the PDF
+        pdf_data = create_document()
+
+        # Save the PDF to the model's FileField
+        self.pdf.save(f'track_{self.id}.pdf', io.BytesIO(pdf_data), save=False)
+
+        # Save the model again to ensure the file is linked
+        super().save()
 
 class Transfer(models.Model):
     reference = models.ForeignKey(

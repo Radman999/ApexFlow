@@ -183,3 +183,9 @@ class TrackAdmin(admin.ModelAdmin):
     inlines = [
         TransferInline,
     ]
+    list_display = ("id", "pdf")
+
+    def save_model(self, request, obj, form, change):
+        # Generate PDF when saving from admin
+        obj.generate_pdf()
+        super().save_model(request, obj, form, change)
