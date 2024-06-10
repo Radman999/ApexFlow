@@ -7,6 +7,7 @@ from .views import QrViewSet
 from .views import TrackViewSet
 from .views import TransferViewSet
 from .views import WhViewSet
+from .views import ZplViewSet
 from .views import refresh_api
 from .views import refresh_api_unit
 
@@ -17,6 +18,7 @@ router.register(r"transfers", TransferViewSet)
 router.register(r"productunits", ProductUnitViewSet)
 router.register(r"wh", WhViewSet)
 router.register(r"Track", TrackViewSet)
+router.register(r"ZPL", ZplViewSet)
 
 urlpatterns = [
     path("refresh-api/", refresh_api, name="refresh_api"),

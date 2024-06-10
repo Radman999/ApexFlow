@@ -1,14 +1,24 @@
-from io import BytesIO
+import io
+import random
 
-import qrcode
 from django.conf import settings
-from django.core.files import File
+from django.core.files.base import ContentFile
 from django.db import models
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
-# Create your models here.
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph
+from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus import Table
+from reportlab.platypus import TableStyle
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 
 class Product(models.Model):
@@ -120,107 +130,259 @@ class Wh(models.Model):
         return self.name + " " + self.Smacc_Code
 
 
+class Zpl(models.Model):
+    qr = models.ForeignKey(
+        "Qr",
+        on_delete=models.CASCADE,
+        related_name="zpls",
+        null=True,
+    )
+    zpl_code = models.TextField()
+    random_id = models.IntegerField(default=0, editable=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.qr.productunit} - {self.qr.wh} - ({self.id})"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:  # Only run this logic when creating a new object
+            while not self.random_id:
+                potential_id = random.randint(10000000, 99999999)  # noqa: S311
+                if not Zpl.objects.filter(random_id=potential_id).exists():
+                    self.random_id = potential_id
+            # Generate ZPL code after random_id is set
+            self.zpl_code = self.create_zpl_data()
+        super().save(*args, **kwargs)
+
+    def create_zpl_data(self):
+        formatted_date = self.created_at.strftime("%Y-%m-%d")
+        zpl_product_name = (
+            self.qr.productunit.product_name + " " + self.qr.productunit.unit_name
+        )
+        long_name = 30
+        # Generate ZPL code including the random_id
+        zpl_code = (
+            "^XA"
+            "^CI28"  # Set the encoding to UTF-8 for Unicode support
+            "^CW1,E:TT003M_.FNT"  # Set the default font to Arabic font
+            f"^FO10,3^BQN,2,9^FDQA,{self.random_id}^FS"
+            f"^FO250,100^A0,30,30^FD{self.random_id}^FS"
+            f"^FO250,150^A0,30,30^FD{formatted_date}^FS"
+        )
+        if len(zpl_product_name) > long_name:
+            zpl_code += (
+                f"^FO210,30^A1N,25,25^PA0,1,1,1^FD{zpl_product_name[:30]}^FS"
+                f"^FO210,60^A1N,25,25^PA0,1,1,1^FD{zpl_product_name[30:]}^FS"
+            )
+        else:
+            zpl_code += f"^FO210,30^A1N,25,25^PA0,1,1,1^FD{zpl_product_name}^FS"
+        zpl_code += "^XZ"
+        return zpl_code
+
+
 class Qr(models.Model):
-    wh = models.ForeignKey("wh", on_delete=models.CASCADE, related_name="wh")
+    wh = models.ForeignKey("Wh", on_delete=models.CASCADE, related_name="wh")
     productunit = models.ForeignKey("ProductUnit", on_delete=models.CASCADE)
     quantity = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
-    generate_qr_flag = models.BooleanField(default=True)
+    create_zpl = True  # Default is to create Zpl instances.
 
     def __str__(self):
-        return f"{self.wh} - {self.productunit} - Quantity: ({self.quantity})"
+        return f"{self.wh} - {self.productunit} - ID: {self.id}"
 
     def save(self, *args, **kwargs):
-        # Call the real save() method first to ensure the model is saved to the DB
+        is_new = self._state.adding
         super().save(*args, **kwargs)
+        if is_new and self.create_zpl:
+            self.create_related_zpl()
 
-        # Check if the qr_code already exists to avoid regenerating it unnecessarily
-        # Only generate a QR code if the flag is True
-        if self.generate_qr_flag and not self.qr_code:
-            self.generate_qr_code()
-            super().save(*args, **kwargs)  # Save again with the QR code
-
-    def generate_qr_code(self):
-        """Generates a QR code and attaches it to the qr_code field."""
-        api = f"/api/QR/{self.id}/"
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(api)
-        qr.make(fit=True)
-
-        img = qr.make_image(fill_color="black", back_color="white")
-        fname = f"qr_code-{self.id}.png"
-        buffer = BytesIO()
-        img.save(buffer, "PNG")
-        self.qr_code.save(fname, File(buffer), save=False)
-        buffer.close()
+    def create_related_zpl(self):
+        for _ in range(self.quantity):  # noqa: F402
+            Zpl.objects.create(
+                qr=self,
+                created_at=self.created_at,
+                updated_at=self.updated_at,
+            )
 
 
 class Track(models.Model):
-    # This model acts as the parent, if needed additional fields can be added here
+    pdf = models.FileField(upload_to="pdfs/", null=True, blank=True)
+
     def __str__(self):
         return f"Track {self.id}"
 
+    def save(self, *args, **kwargs):
+        # Save the instance first
+        super().save(*args, **kwargs)
+        # Generate PDF after the instance is saved
+        self.generate_pdf()
+
+    def generate_pdf(self):
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+
+        # Register a font that supports Arabic
+        pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+        transfers = [
+            {"product_name": "Product 1", "quantity": 10, "notes": ""},
+            {"product_name": "Product 2", "quantity": 5, "notes": ""},
+            # Add more transfers as needed
+        ]
+        
+        def register_fonts():
+            """Register fonts required for the PDF."""
+            pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+
+        def create_styles():
+            """Create and return custom styles for the PDF."""
+            styles = getSampleStyleSheet()
+            arabic_text_style = ParagraphStyle(
+                'ArabicStyle',
+                parent=styles['Normal'],
+                fontName='Arial',
+                fontSize=12,
+                alignment=2  # Right alignment
+            )
+            title_style = ParagraphStyle(
+                'TitleStyle',
+                parent=styles['Normal'],
+                alignment=1,  # Center alignment
+                fontName='Arial',
+                fontSize=12
+            )
+            return arabic_text_style, title_style
+
+        def create_paragraph(text, style):
+            """Create a Paragraph with reshaped and bidirectional text."""
+            reshaped_text = arabic_reshaper.reshape(text)
+            bidi_text = get_display(reshaped_text)
+            return Paragraph(bidi_text, style)
+
+        def create_table(data, col_widths, row_heights=None, style_commands=None):
+            """Create a table with the given data, column widths, and styles."""
+            table = Table(data, colWidths=col_widths, rowHeights=row_heights)
+            table_style = TableStyle(style_commands or [
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ])
+            table.setStyle(table_style)
+            return table
+
+        def create_document():
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            elements = []
+
+            register_fonts()
+            arabic_text_style, title_style = create_styles()
+
+            title = create_paragraph("تحميل من المكتب", title_style)
+            date = create_paragraph("التاريخ:", arabic_text_style)
+
+            # Create header row
+            header_data = ["ملاحظات", "عدد الكراتين", "اسم المنتج", "#"]
+            reshaped_header_data = [create_paragraph(item, arabic_text_style) for item in header_data]
+            data = [reshaped_header_data]
+
+            # Add transfer data
+            for idx, transfer in enumerate(transfers, start=1):
+                data.append([
+                    create_paragraph(transfer["notes"], arabic_text_style),
+                    transfer["quantity"],
+                    create_paragraph(transfer["product_name"], arabic_text_style),
+                    idx,
+                ])
+
+            # Add space and signature rows
+            space = create_table([[""]], [430], [15], [
+                ('BACKGROUND', (0, 0), (-1, -1), colors.gray),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ])
+
+            sign_data = [
+                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
+                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
+                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
+                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
+            ]
+            sign = create_table(sign_data, [300, 100, 30])
+
+            # Create main table
+            table = create_table(data, [150, 100, 150, 30], style_commands=[
+                ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),  # Changed to 'RIGHT' alignment
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey)
+            ])
+
+            elements.extend([title, date, table, space, sign])
+            doc.build(elements)
+
+            return buffer.getvalue()
+
+        # Generate the PDF
+        pdf_data = create_document()
+
+        # Save the PDF to the model's FileField
+        self.pdf.save(f'track_{self.id}.pdf', io.BytesIO(pdf_data), save=False)
+
+        # Save the model again to ensure the file is linked
+        super().save()
 
 class Transfer(models.Model):
     reference = models.ForeignKey(
-        Track,
+        "Track",
         on_delete=models.CASCADE,
         related_name="transfers",
     )
-    From = models.ForeignKey(Qr, on_delete=models.CASCADE, related_name="transfer_from")
-    To = models.ForeignKey(Wh, on_delete=models.CASCADE, related_name="transfer_to")
-    quantity = models.IntegerField()
+    From = models.ForeignKey(
+        "Zpl",
+        on_delete=models.CASCADE,
+        related_name="transfer_from",
+    )
+    To = models.ForeignKey("Wh", on_delete=models.CASCADE, related_name="transfer_to")
 
     def __str__(self):
         return f"From {self.From} To {self.To}"
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
-            # Disable QR code generation during transfer process
-            self.From.generate_qr_flag = False
+            # Decrement the quantity of the original QR
+            original_qr = self.From.qr
+            if original_qr.quantity > 0:
+                original_qr.quantity -= 1
+                original_qr.save()
+
+            # Check if the 'To' warehouse already has a corresponding Qr
+            existing_qr = Qr.objects.filter(
+                wh=self.To,
+                productunit=self.From.qr.productunit,
+                created_at=self.From.qr.created_at,
+            ).first()
+
+            if existing_qr:
+                existing_qr.quantity += 1
+                existing_qr.save()
+                new_qr = existing_qr
+            else:
+                new_qr = Qr(
+                    wh=self.To,
+                    productunit=self.From.qr.productunit,
+                    quantity=1,
+                    created_at=self.From.qr.created_at,
+                    updated_at=timezone.now(),
+                )
+                new_qr.create_zpl = False  # Prevent Zpl creation during save
+                new_qr.save()
+
+            # Update the Zpl's qr to the new or updated Qr instance
+            self.From.qr = new_qr
             self.From.save()
 
-            # Logic to handle transferring items
-            if self.From.quantity >= self.quantity:
-                self.From.quantity -= self.quantity
-                self.From.save()
-
-                # Update or create Qr for 'To'
-                existing_qr = Qr.objects.filter(
-                    wh=self.To,
-                    productunit=self.From.productunit,
-                    created_at=self.From.created_at,
-                ).first()
-
-                if existing_qr:
-                    existing_qr.quantity += self.quantity
-                    existing_qr.generate_qr_flag = (
-                        False  # Ensure not to generate QR code
-                    )
-                    existing_qr.save()
-                else:
-                    Qr.objects.create(
-                        wh=self.To,
-                        productunit=self.From.productunit,
-                        quantity=self.quantity,
-                        created_at=self.From.created_at,
-                        updated_at=self.From.updated_at,
-                        qr_code=None,
-                        generate_qr_flag=False,  # Prevent QR code generation
-                    )
-            else:
-                error_message = "Not enough stock to complete the transfer."
-                raise ValueError(error_message)
-
-            # Restore QR code generation flag and save the Transfer
-            self.From.generate_qr_flag = True
             super().save(*args, **kwargs)
 
 
