@@ -1,8 +1,9 @@
 import io
 import random
 
+import arabic_reshaper
+from bidi.algorithm import get_display
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models
 from django.db import transaction
 from django.utils import timezone
@@ -15,10 +16,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph
 from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus import Spacer
 from reportlab.platypus import Table
 from reportlab.platypus import TableStyle
-import arabic_reshaper
-from bidi.algorithm import get_display
 
 
 class Product(models.Model):
@@ -94,13 +94,6 @@ class Creator(models.Model):
 
     class Meta:
         abstract = True  # Important: This makes the model abstract
-
-
-class Test(Creator):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
 
 
 class Unit(models.Model):
@@ -209,49 +202,76 @@ class Qr(models.Model):
 
 class Track(models.Model):
     pdf = models.FileField(upload_to="pdfs/", null=True, blank=True)
-
+    is_sent = models.BooleanField(default=False)
+    picture = models.FileField(upload_to="pdfs/", null=True, blank=True)
     def __str__(self):
         return f"Track {self.id}"
 
     def save(self, *args, **kwargs):
-        # Save the instance first
+        initial_save = not self.pk
         super().save(*args, **kwargs)
-        # Generate PDF after the instance is saved
-        self.generate_pdf()
 
-    def generate_pdf(self):
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
-        elements = []
+        # Only generate PDF if this is the initial save
+        if initial_save:
+            # Delay the PDF generation to ensure all related transfers are created
+            self._generate_pdf_delayed()
 
+    def _generate_pdf_delayed(self):
+        # Use a transaction to delay the PDF generation
+        transaction.on_commit(self.generate_pdf)
+
+    def generate_pdf(self):  # noqa: PLR0915
         # Register a font that supports Arabic
-        pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
-        transfers = [
-            {"product_name": "Product 1", "quantity": 10, "notes": ""},
-            {"product_name": "Product 2", "quantity": 5, "notes": ""},
-            # Add more transfers as needed
-        ]
-        
+        pdfmetrics.registerFont(TTFont("Arial", "arial.ttf"))
+        # Initialize transfers list
+        transfers = []
+        idx = 0
+        from_warehouse = "Unknown"
+        to_warehouse = "Unknown"
+        # Collect transfer data
+        for idx, transfer in enumerate(self.transfers.all(), start=1):  # noqa: B007
+            product_unit_name = transfer.From.qr.productunit.product_unit_name
+            existing_product = next(
+                (
+                    item
+                    for item in transfers
+                    if item["product_name"] == product_unit_name
+                ),
+                None,
+            )
+            from_warehouse = transfer.from_warehouse_name  # Use captured name
+            to_warehouse = transfer.to_warehouse_name  # Use captured name
+            if existing_product:
+                existing_product["quantity"] += 1
+            else:
+                transfers.append(
+                    {
+                        "product_name": product_unit_name,
+                        "quantity": 1,
+                        "notes": "",  # Assuming each qr has a quantity and notes field
+                    },
+                )
+
         def register_fonts():
             """Register fonts required for the PDF."""
-            pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+            pdfmetrics.registerFont(TTFont("Arial", "arial.ttf"))
 
         def create_styles():
             """Create and return custom styles for the PDF."""
             styles = getSampleStyleSheet()
             arabic_text_style = ParagraphStyle(
-                'ArabicStyle',
-                parent=styles['Normal'],
-                fontName='Arial',
+                "ArabicStyle",
+                parent=styles["Normal"],
+                fontName="Arial",
                 fontSize=12,
-                alignment=2  # Right alignment
+                alignment=2,  # Right alignment
             )
             title_style = ParagraphStyle(
-                'TitleStyle',
-                parent=styles['Normal'],
+                "TitleStyle",
+                parent=styles["Normal"],
                 alignment=1,  # Center alignment
-                fontName='Arial',
-                fontSize=12
+                fontName="Arial",
+                fontSize=12,
             )
             return arabic_text_style, title_style
 
@@ -264,10 +284,13 @@ class Track(models.Model):
         def create_table(data, col_widths, row_heights=None, style_commands=None):
             """Create a table with the given data, column widths, and styles."""
             table = Table(data, colWidths=col_widths, rowHeights=row_heights)
-            table_style = TableStyle(style_commands or [
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ])
+            table_style = TableStyle(
+                style_commands
+                or [
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ],
+            )
             table.setStyle(table_style)
             return table
 
@@ -280,47 +303,91 @@ class Track(models.Model):
             arabic_text_style, title_style = create_styles()
 
             title = create_paragraph("تحميل من المكتب", title_style)
-            date = create_paragraph("التاريخ:", arabic_text_style)
+            current_datetime = timezone.now().strftime("%Y-%m-%d")
+            date = create_paragraph(f"التاريخ: {current_datetime}", arabic_text_style)
 
             # Create header row
             header_data = ["ملاحظات", "عدد الكراتين", "اسم المنتج", "#"]
-            reshaped_header_data = [create_paragraph(item, arabic_text_style) for item in header_data]
+            reshaped_header_data = [
+                create_paragraph(item, arabic_text_style) for item in header_data
+            ]
             data = [reshaped_header_data]
 
             # Add transfer data
-            for idx, transfer in enumerate(transfers, start=1):
-                data.append([
-                    create_paragraph(transfer["notes"], arabic_text_style),
-                    transfer["quantity"],
-                    create_paragraph(transfer["product_name"], arabic_text_style),
-                    idx,
-                ])
+            for transfer_idx, transfer in enumerate(transfers, start=1):
+                data.append(
+                    [
+                        create_paragraph(transfer["notes"], arabic_text_style),
+                        transfer["quantity"],
+                        create_paragraph(transfer["product_name"], arabic_text_style),
+                        transfer_idx,
+                    ],
+                )
 
             # Add space and signature rows
-            space = create_table([[""]], [430], [15], [
-                ('BACKGROUND', (0, 0), (-1, -1), colors.gray),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ])
+            space = create_table(
+                [[""]],
+                [430],
+                [15],
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.gray),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ],
+            )
 
             sign_data = [
-                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
-                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
-                ["", create_paragraph("اسم المستلم :", arabic_text_style), ""],
-                ["", create_paragraph("التوقيع :", arabic_text_style), ""],
+                [
+                    "",
+                    create_paragraph(
+                        f"اسم المستلم: {from_warehouse}",
+                        arabic_text_style,
+                    ),
+                    idx + 1,
+                ],
+                ["", create_paragraph("التوقيع:", arabic_text_style), idx + 2],
+                [
+                    "",
+                    create_paragraph(f"اسم المسلم: {to_warehouse}", arabic_text_style),
+                    idx + 3,
+                ],
+                ["", create_paragraph("التوقيع:", arabic_text_style), idx + 4],
             ]
-            sign = create_table(sign_data, [300, 100, 30])
+            sign = create_table(
+                sign_data,
+                [300, 100, 30],
+                style_commands=[
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ],
+            )
 
             # Create main table
-            table = create_table(data, [150, 100, 150, 30], style_commands=[
-                ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),  # Changed to 'RIGHT' alignment
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey)
-            ])
+            table = create_table(
+                data,
+                [150, 100, 150, 30],
+                style_commands=[
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "RIGHT",
+                    ),  # Changed to 'RIGHT' alignment
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ],
+            )
 
-            elements.extend([title, date, table, space, sign])
-            doc.build(elements)
+            elements.extend(
+                [title, Spacer(1, 10), date, Spacer(1, 10), table, space, sign],
+            )
+            doc.build(
+                elements,
+                onFirstPage=lambda canvas, doc: canvas.setTitle("تحميل من المكتب"),
+            )
 
             return buffer.getvalue()
 
@@ -328,10 +395,11 @@ class Track(models.Model):
         pdf_data = create_document()
 
         # Save the PDF to the model's FileField
-        self.pdf.save(f'track_{self.id}.pdf', io.BytesIO(pdf_data), save=False)
+        self.pdf.save("تحميل من المكتب.pdf", io.BytesIO(pdf_data), save=False)
 
         # Save the model again to ensure the file is linked
         super().save()
+
 
 class Transfer(models.Model):
     reference = models.ForeignKey(
@@ -345,12 +413,18 @@ class Transfer(models.Model):
         related_name="transfer_from",
     )
     To = models.ForeignKey("Wh", on_delete=models.CASCADE, related_name="transfer_to")
+    from_warehouse_name = models.CharField(max_length=100, blank=True)
+    to_warehouse_name = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         return f"From {self.From} To {self.To}"
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
+            # Capture the warehouse names before any transfer happens
+            self.from_warehouse_name = self.From.qr.wh.name
+            self.to_warehouse_name = self.To.name
+
             # Decrement the quantity of the original QR
             original_qr = self.From.qr
             if original_qr.quantity > 0:
