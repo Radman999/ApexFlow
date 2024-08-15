@@ -204,6 +204,7 @@ class Track(models.Model):
     pdf = models.FileField(upload_to="pdfs/", null=True, blank=True)
     is_sent = models.BooleanField(default=False)
     picture = models.FileField(upload_to="pdfs/", null=True, blank=True)
+
     def __str__(self):
         return f"Track {self.id}"
 

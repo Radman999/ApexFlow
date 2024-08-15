@@ -70,13 +70,16 @@ class CreatorAdmin(admin.ModelAdmin):
             obj.creator = request.user  # Set the creator to the current user
         super().save_model(request, obj, form, change)
 
+
+@admin.action(
+    description="Toggle selected product statuses",
+)
 def toggle_status(modeladmin, request, queryset):
     for product in queryset:
         product.is_active = not product.is_active
         product.save()
     modeladmin.message_user(request, ("Selected product statuses have been toggled."))
 
-toggle_status.short_description = ("Toggle selected product statuses")
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -133,13 +136,14 @@ class QrAdmin(admin.ModelAdmin):
     exclude = ("created_at", "updated_at")
     autocomplete_fields = ["productunit"]  # Enable autocomplete here
 
+    @admin.display(
+        description="Download ZPL",
+    )
     def download_zpl_link(self, obj):
         return format_html(
             '<a href="{}">Download ZPL</a>',
             reverse("admin:download_zpl", args=[obj.id]),
         )
-
-    download_zpl_link.short_description = "Download ZPL"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -179,7 +183,8 @@ class TrackAdmin(admin.ModelAdmin):
         TransferInline,
     ]
     list_display = ("id", "pdf", "is_sent", "picture")
-    exclude = ("pdf","is_sent")
+    exclude = ("pdf", "is_sent")
+
     def save_model(self, request, obj, form, change):
         # Generate PDF when saving from admin
         super().save_model(request, obj, form, change)

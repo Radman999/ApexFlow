@@ -169,6 +169,7 @@ class ZplSerializer(serializers.ModelSerializer):
     def get_productunit_name(self, obj):
         # Return the related product_unit_name
         return obj.qr.productunit.product_unit_name if obj.qr.productunit else None
+
     class Meta:
         model = Zpl
         fields = [
