@@ -104,9 +104,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-MEDIA_URL = f"https://{aws_s3_domain}/media/"
-COLLECTFAST_STRATEGY = "collectfast.strategies.boto3.Boto3Strategy"
-STATIC_URL = f"https://{aws_s3_domain}/static/"
+# MEDIA_URL = f"https://{aws_s3_domain}/media/" # noqa: ERA001
+# COLLECTFAST_STRATEGY = "collectfast.strategies.boto3.Boto3Strategy" # noqa: ERA001
+# STATIC_URL = f"https://{aws_s3_domain}/static/" # noqa: ERA001
 
 # EMAIL
 # ------------------------------------------------------------------------------
