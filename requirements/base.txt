@@ -1,4 +1,5 @@
 python-slugify==8.0.4  # https://github.com/un33k/python-slugify
+python-bidi==0.6.0  # https://github.com/MeirKriheli/python-bidi
 Pillow==10.3.0  # https://github.com/python-pillow/Pillow
 argon2-cffi==23.1.0  # https://github.com/hynek/argon2_cffi
 whitenoise==6.6.0  # https://github.com/evansd/whitenoise
@@ -26,3 +27,5 @@ drf-spectacular==0.27.2  # https://github.com/tfranzel/drf-spectacular
 #
 qrcode[pil]==7.4.2 # https://github.com/lincolnloop/python-qrcode
 pypng== 0.20220715.0 # https://gitlab.com/drj11/pypng
+arabic-reshaper[with-fonttools]==3.0.0 # https://github.com/mpcabd/python-arabic-reshaper
+reportlab==4.2.2 # https://pypi.org/project/reportlab/
