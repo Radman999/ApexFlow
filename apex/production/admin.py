@@ -7,7 +7,6 @@ from django.utils.html import format_html
 from .models import Product
 from .models import ProductUnit
 from .models import Qr
-from .models import Test
 from .models import Track
 from .models import Transfer
 from .models import Unit
@@ -71,16 +70,13 @@ class CreatorAdmin(admin.ModelAdmin):
             obj.creator = request.user  # Set the creator to the current user
         super().save_model(request, obj, form, change)
 
+def toggle_status(modeladmin, request, queryset):
+    for product in queryset:
+        product.is_active = not product.is_active
+        product.save()
+    modeladmin.message_user(request, ("Selected product statuses have been toggled."))
 
-@admin.register(Test)
-class TestAdmin(CreatorAdmin):
-    list_display = (
-        "name",
-        "created_at",
-        "updated_at",
-        "creator",
-    )  # Columns to display in the admin list view
-
+toggle_status.short_description = ("Toggle selected product statuses")
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -93,6 +89,7 @@ class ProductAdmin(admin.ModelAdmin):
     )  # Columns to display in the admin list view
     search_fields = ("name",)  # Add a search bar to the admin list view
     exclude = ("created_at", "updated_at")
+    actions = [toggle_status]  # Register the custom action
 
 
 @admin.register(Unit)
@@ -125,9 +122,6 @@ class ZplInline(admin.TabularInline):
 
 @admin.register(Qr)
 class QrAdmin(admin.ModelAdmin):
-    inlines = [
-        ZplInline,
-    ]
     list_display = (
         "wh",
         "productunit",
@@ -136,7 +130,7 @@ class QrAdmin(admin.ModelAdmin):
         "updated_at",
         "download_zpl_link",
     )
-    readonly_fields = ("created_at", "updated_at")
+    exclude = ("created_at", "updated_at")
     autocomplete_fields = ["productunit"]  # Enable autocomplete here
 
     def download_zpl_link(self, obj):
@@ -175,6 +169,7 @@ class WhtypeAdmin(admin.ModelAdmin):
 
 class TransferInline(admin.TabularInline):
     model = Transfer
+    exclude = ["from_warehouse_name", "to_warehouse_name"]
     extra = 1  # Defines how many rows are shown by default
 
 
@@ -183,9 +178,9 @@ class TrackAdmin(admin.ModelAdmin):
     inlines = [
         TransferInline,
     ]
-    list_display = ("id", "pdf")
-
+    list_display = ("id", "pdf", "is_sent", "picture")
+    exclude = ("pdf","is_sent")
     def save_model(self, request, obj, form, change):
         # Generate PDF when saving from admin
-        obj.generate_pdf()
         super().save_model(request, obj, form, change)
+        obj.generate_pdf()
