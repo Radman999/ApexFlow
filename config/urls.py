@@ -13,7 +13,6 @@ from drf_spectacular.views import SpectacularRedocView
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
-    path("", include("apex.production.urls")),
     path("home/", TemplateView.as_view(template_name="pages/home.html"), name="home"),
     path(
         "about/",
